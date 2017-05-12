@@ -9,6 +9,71 @@ var RGBColor = require("rgbcolor");
 var stackblur = require("stackblur");
 var xmldom = require('xmldom');
 
+var proxy = null;
+var orgCtx = null;
+var commands = [];
+
+var handler = {
+    get: function(target, name) {
+		//console.log("proxy: " + name);
+		//console.log("target",target);
+
+        let obj = orgCtx[name];
+		if (typeof obj === "function") {
+			const origMethod = orgCtx[name];
+			let proxyFunction = function(...args) {
+			 	let result = origMethod.apply(orgCtx, args);
+				 	//console.log("result", result);
+                	//console.log(name + JSON.stringify(args) + ' -> ' + JSON.stringify(result));
+					//commands.push({action: "get", function: name, value: args});
+					if(name === "lineTo")
+					{
+						commands.push({action: "L", function: name, value: args});
+					}
+					else if (name === "bezierCurveTo")
+					{
+						commands.push({action: "C", function: name, value: args});
+					}
+
+                return result;	
+			}
+			//console.log(proxyFunction);
+			return proxyFunction;
+    	} else {
+			return obj;
+		}
+	},
+	set: function(obj, name, newval) {
+		//commands.push({action: "set", attribute: name, value: newval});
+		orgCtx[name] = newval;
+	}
+};
+
+
+function proxyCtx(ctx) {
+	proxy = new Proxy({}, handler);
+	orgCtx = ctx;
+	//console.log(commands);
+	return proxy;
+}
+
+function renderFromCommands(cmd, ctx){
+	console.log("commands", cmd);
+	for(var i = 0; i < cmd.length; i++)
+	{
+		let funcName = cmd[i].function;
+		if(funcName === "lineTo")
+		{
+			ctx.lineTo(cmd[i].value[0], cmd[i].value[0]);
+		}
+		else if(funcName === "bezierCurveTo")
+		{
+			ctx.lineTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3], cmd[i].value[4], cmd[i].value[5]);
+		} else {
+			console.error("big problem, command not implemeted:", funcName);
+		}
+	}
+}
 /*
  * canvg.js - Javascript SVG parser and renderer on Canvas
  * MIT Licensed
@@ -30,8 +95,18 @@ var xmldom = require('xmldom');
 	//		 scaleHeight: int => scales vertically to height
 	//		 renderCallback: function => will call the function after the first render is completed
 	//		 forceRedraw: function => will call the function on every frame, if it returns true, will redraw
-	this.canvg = function (target, s, opts) {
+	this.runCommands = function(commands) {
+		console.log("runCommands");
+		var ctx = function(){
+
+		}
+	}
+	
+	this.canvg = function (target, target2, s, opts) {
 		if (target == null || s == null) {
+			return;
+		}
+		if (target2 == null || target2 == null) {
 			return;
 		}
 		opts = opts || {};
@@ -40,8 +115,17 @@ var xmldom = require('xmldom');
 		target.svg = svg = build();
 		svg.opts = opts;
 		var ctx = target.getContext('2d');
+		ctx = proxyCtx(ctx);
 		svg.loadXmlDoc(ctx, svg.parseXml(s));
+
+// nu finns det commands -------------------------
+
+		var ctx2 = target2.getContext('2d');
+
+		renderFromCommands(commands, ctx2);
+		//console.log(JSON.stringify(commands));
 	}
+
 
 	function build() {
 		var svg = {};
@@ -134,6 +218,7 @@ var xmldom = require('xmldom');
 		// parse xml
 		svg.parseXml = function(xml) {
 			var parser = new xmldom.DOMParser();
+			//console.log("parseXML",parser.parseFromString(xml, 'text/xml'));
 			return parser.parseFromString(xml, 'text/xml');
 		}
 
@@ -309,11 +394,15 @@ var xmldom = require('xmldom');
 			}
 			return a;
 		}
+
 		svg.Point = function(x, y) {
+			//console.log("here 1");
 			this.x = x;
 			this.y = y;
+			//console.log("Point", )
 		}
 			svg.Point.prototype.angleTo = function(p) {
+				//console.log("here 2");
 				return Math.atan2(p.y - this.y, p.x - this.x);
 			}
 
@@ -333,6 +422,7 @@ var xmldom = require('xmldom');
 			var path = [];
 			for (var i=0; i<a.length; i+=2) {
 				path.push(new svg.Point(a[i], a[i+1]));
+				
 			}
 			return path;
 		}
@@ -633,7 +723,10 @@ var xmldom = require('xmldom');
 							var filter = this.style('filter').getDefinition();
 							if (filter != null) filter.apply(ctx, this);
 						}
-						else this.renderChildren(ctx);
+						else { 
+
+							this.renderChildren(ctx);
+						}
 					this.clearContext(ctx);
 				ctx.restore();
 			}
@@ -651,6 +744,7 @@ var xmldom = require('xmldom');
 			// base render children
 			this.renderChildren = function(ctx) {
 				for (var i=0; i<this.children.length; i++) {
+					//console.log("renderChildren", this.children[i].render(ctx));
 					this.children[i].render(ctx);
 				}
 			}
@@ -666,13 +760,18 @@ var xmldom = require('xmldom');
 				// add children
 				for (var i=0; i<node.childNodes.length; i++) {
 					var childNode = node.childNodes[i];
-					if (childNode.nodeType == 1) this.addChild(childNode, true); //ELEMENT_NODE
+					if (childNode.nodeType == 1) 
+					{
+						this.addChild(childNode, true); //ELEMENT_NODE
+						//console.log("child", this.addChild(childNode, true));
+					}
 				}
 
 				// add attributes
 				for (var i=0; i<node.attributes.length; i++) {
 					var attribute = node.attributes[i];
 					this.attributes[attribute.nodeName] = new svg.Property(attribute.nodeName, attribute.nodeValue);
+					//console.log("Attribute", new svg.Property(attribute.nodeName, attribute.nodeValue));
 				}
 
 				// add tag styles
@@ -1534,12 +1633,14 @@ var xmldom = require('xmldom');
 					group.attributes['transform'] = new svg.Property('transform', this.attribute('gradientTransform').value);
 					group.children = [ rect ];
 
+
 					var tempSvg = new svg.Element.svg();
 					tempSvg.attributes['x'] = new svg.Property('x', 0);
 					tempSvg.attributes['y'] = new svg.Property('y', 0);
 					tempSvg.attributes['width'] = new svg.Property('width', rootView.width);
 					tempSvg.attributes['height'] = new svg.Property('height', rootView.height);
 					tempSvg.children = [ group ];
+
 
 					var c = document.createElement('canvas');
 					c.width = rootView.width;
@@ -1778,6 +1879,7 @@ var xmldom = require('xmldom');
 
 		// font element
 		svg.Element.font = function(node) {
+
 			this.base = svg.Element.ElementBase;
 			this.base(node);
 
@@ -2094,7 +2196,8 @@ var xmldom = require('xmldom');
 			var renderSvg = function(target, buffer) {
 				var str = buffer.toString('utf8');
 				var canvas = document.createElement('canvas');
-				canvg(canvas, str, {
+				var canvas2 = document.createElement('canvas2');
+				canvg(canvas, canvas2, str, {
 					ignoreDimensions: false,
 					ignoreAnimation: true,
 					renderCallback: function() {
@@ -2475,6 +2578,7 @@ var xmldom = require('xmldom');
 		}
 
 		svg.loadXmlDoc = function(ctx, dom) {
+			//console.log("here");
 			svg.init(ctx);
 
 			var mapXY = function(p) {
@@ -2517,8 +2621,14 @@ var xmldom = require('xmldom');
 
 				if (!("ignoreAnimation" in svg.opts)) svg.opts.ignoreAnimation = false;
 
-				if (svg.opts['offsetX'] != null) e.attribute('x', true).value = svg.opts['offsetX'];
-				if (svg.opts['offsetY'] != null) e.attribute('y', true).value = svg.opts['offsetY'];
+				if (svg.opts['offsetX'] != null)
+				{ 
+					e.attribute('x', true).value = svg.opts['offsetX'];
+				}
+				if (svg.opts['offsetY'] != null)
+				{
+					e.attribute('y', true).value = svg.opts['offsetY'];
+				}
 				if (svg.opts['scaleWidth'] != null && svg.opts['scaleHeight'] != null) {
 					var xRatio = 1, yRatio = 1, viewBox = svg.ToNumberArray(e.attribute('viewBox').value);
 					if (e.attribute('width').hasValue()) xRatio = e.attribute('width').toPixels('x') / svg.opts['scaleWidth'];
@@ -2536,6 +2646,7 @@ var xmldom = require('xmldom');
 				if (svg.opts['ignoreClear'] != true) {
 					ctx.clearRect(0, 0, cWidth, cHeight);
 				}
+
 				e.render(ctx);
 				if (isFirstRender) {
 					isFirstRender = false;
@@ -5424,9 +5535,7 @@ exports.XMLReader = XMLReader;
 
 },{}],7:[function(require,module,exports){
 var canvg = require("canvg");
-/*var canvas = document.createElement('canvas');
-canvg(document.getElementById("testCan"), 'test <svg></svg>');*/
-//canvg(canvas, '<svg></svg>');
+//Used to render into bundle.js
 },{"canvg":1}],8:[function(require,module,exports){
 
 },{}],9:[function(require,module,exports){

@@ -7,7 +7,7 @@ This fork is meant for client-only usage and does not depend on the Canvas packa
 which can make problems with platforms such as Heroku.
 
 My version is based on https://github.com/syntheticore/node-canvg
-and somewhat more bundled and simplified
+and is somewhat more bundled and simplified
 
 ## Usage
 import renderSvg.js into your html files

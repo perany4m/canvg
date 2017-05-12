@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+
+<head>
+    <script src="renderSvg1.js"></script>
+</head>
+
+<body>
+    <h1>Render SVG</h1>
+
+    <canvas id="testCan"></canvas>
+
+        <button onclick="circle()">Circle</button>
+        <button onclick="path()">Path</button>
+        <button onclick="rectangle()">Rectangle</button>
+    <script>
+        var targetElement = document.getElementById("testCan")
+        function circle()
+        {
+            var svg = '<svg><circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" /></svg>';
+            canvg(targetElement, svg);
+        }
+
+        function path()
+        {
+            var svg = '<svg><path d="M0 0 L200 0 C200 0 200 0 200 0 L200 23 C200 23 200 23 200 23 L0 23 C0 23 0 23 0 23 L0 0 C0 0 0 0 0 0 Z" stroke-width="1" stroke="rgb(0,0,0)" stroke-dasharray="none" fill="rgb(255,255,255)"></path></svg>';
+            canvg(targetElement, svg);
+        }
+
+        function rectangle()
+        {
+            var svg = '<svg><rect width="300" height="100" style="fill:rgb(0,0,255);stroke-width:3;stroke:rgb(0,0,0)" /></svg>';
+            canvg(targetElement, svg);
+        }
+
+    </script>
+</body>
+
+</html>
