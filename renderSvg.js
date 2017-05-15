@@ -15,29 +15,19 @@ var commands = [];
 
 var handler = {
     get: function(target, name) {
-		//console.log("proxy: " + name);
-		//console.log("target",target);
+
 
         let obj = orgCtx[name];
 		if (typeof obj === "function") {
 			const origMethod = orgCtx[name];
 			let proxyFunction = function(...args) {
 			 	let result = origMethod.apply(orgCtx, args);
-				 	//console.log("result", result);
-                	//console.log(name + JSON.stringify(args) + ' -> ' + JSON.stringify(result));
+                	console.log(name + JSON.stringify(args) + ' -> ' + JSON.stringify(result));
 					//commands.push({action: "get", function: name, value: args});
-					if(name === "lineTo")
-					{
-						commands.push({action: "L", function: name, value: args});
-					}
-					else if (name === "bezierCurveTo")
-					{
-						commands.push({action: "C", function: name, value: args});
-					}
+					commands.push({function: name, value: args});
 
                 return result;	
 			}
-			//console.log(proxyFunction);
 			return proxyFunction;
     	} else {
 			return obj;
@@ -45,6 +35,8 @@ var handler = {
 	},
 	set: function(obj, name, newval) {
 		//commands.push({action: "set", attribute: name, value: newval});
+		console.log("set proxy",JSON.stringify(name) + ' -> ' + JSON.stringify(newval));
+		commands.push({function: name, value: newval});
 		orgCtx[name] = newval;
 	}
 };
@@ -53,26 +45,7 @@ var handler = {
 function proxyCtx(ctx) {
 	proxy = new Proxy({}, handler);
 	orgCtx = ctx;
-	//console.log(commands);
 	return proxy;
-}
-
-function renderFromCommands(cmd, ctx){
-	console.log("commands", cmd);
-	for(var i = 0; i < cmd.length; i++)
-	{
-		let funcName = cmd[i].function;
-		if(funcName === "lineTo")
-		{
-			ctx.lineTo(cmd[i].value[0], cmd[i].value[0]);
-		}
-		else if(funcName === "bezierCurveTo")
-		{
-			ctx.lineTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3], cmd[i].value[4], cmd[i].value[5]);
-		} else {
-			console.error("big problem, command not implemeted:", funcName);
-		}
-	}
 }
 /*
  * canvg.js - Javascript SVG parser and renderer on Canvas
@@ -95,18 +68,83 @@ function renderFromCommands(cmd, ctx){
 	//		 scaleHeight: int => scales vertically to height
 	//		 renderCallback: function => will call the function after the first render is completed
 	//		 forceRedraw: function => will call the function on every frame, if it returns true, will redraw
-	this.runCommands = function(commands) {
-		console.log("runCommands");
-		var ctx = function(){
-
+	function renderFromCommands(cmd, ctx){
+	for(var i = 0; i < cmd.length; i++)
+	{
+		let funcName = cmd[i].function;
+		if(funcName === "lineTo") {
+			ctx.lineTo(cmd[i].value[0], cmd[i].value[1]);
 		}
+		else if(funcName === "bezierCurveTo") {
+			ctx.bezierCurveTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3], cmd[i].value[4], cmd[i].value[5]);
+		} 
+		else if(funcName === "quadraticCurveTo") {
+			ctx.quadraticCurveTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3]);
+		} 
+		else if(funcName === "arc") {
+			ctx.quadraticCurveTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3], cmd[i].value[4], cmd[i].value[5]);
+		} 
+		else if(funcName === "clearRect") {
+			ctx.clearRect(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3]);
+		}
+		else if(funcName === "save") {
+			ctx.save();
+		}
+		else if(funcName === "translate") {
+			ctx.translate(cmd[i].value[0], cmd[i].value[1]);
+		}
+		else if(funcName === "beginPath") {
+			ctx.beginPath();
+		}
+		else if(funcName === "moveTo") {
+			ctx.moveTo(cmd[i].value[0], cmd[i].value[1]);
+		}
+		else if(funcName === "closePath") {
+			ctx.closePath();
+		}
+		else if(funcName === "fill") {
+			ctx.fill();
+		}
+		else if(funcName === "stroke") {
+			ctx.stroke();
+		}
+		else if(funcName === "restore") {
+			ctx.restore();
+		}
+		else if (funcName === "strokeStyle" ) {
+			ctx.strokeStyle =='none' ? 'rgba(0,0,0)' : cmd[i].value[0];;
+		}
+		else if (funcName === "lineCap" ) {
+			ctx.lineCap = 'butt';
+		}
+		else if (funcName === "lineJoin" ) {
+			ctx.lineJoin = 'miter';
+		}
+		else if (funcName === "miterLimit" ) {
+			ctx.miterLimit = 4;
+		}
+		else if (funcName === "font" ) {
+			ctx.font = "10px sans-serif";
+		}
+		else if (funcName === "fillStyle" ) {
+			ctx.fillStyle == 'none' ? 'rgba(255,255,255)' : cmd[i].value[0];
+		}
+		else if (funcName === "lineWidth" ) {
+			ctx.lineWidth = 1;
+		}
+		else {
+			console.error("big problem, command not implemeted:", funcName);
+		}
+
+
 	}
+}
 	
 	this.canvg = function (target, target2, s, opts) {
 		if (target == null || s == null) {
 			return;
 		}
-		if (target2 == null || target2 == null) {
+		if (target2 == null || s == null) {
 			return;
 		}
 		opts = opts || {};
@@ -116,14 +154,16 @@ function renderFromCommands(cmd, ctx){
 		svg.opts = opts;
 		var ctx = target.getContext('2d');
 		ctx = proxyCtx(ctx);
+		//JSON.stringify(name)
+		//var temp = svg.parseXml(s);
+		//new XMLSerializer().serializeToString(xml);
 		svg.loadXmlDoc(ctx, svg.parseXml(s));
+		
 
 // nu finns det commands -------------------------
 
 		var ctx2 = target2.getContext('2d');
-
-		renderFromCommands(commands, ctx2);
-		//console.log(JSON.stringify(commands));
+		renderFromCommands(commands, ctx2,);
 	}
 
 
@@ -218,7 +258,6 @@ function renderFromCommands(cmd, ctx){
 		// parse xml
 		svg.parseXml = function(xml) {
 			var parser = new xmldom.DOMParser();
-			//console.log("parseXML",parser.parseFromString(xml, 'text/xml'));
 			return parser.parseFromString(xml, 'text/xml');
 		}
 
@@ -396,13 +435,10 @@ function renderFromCommands(cmd, ctx){
 		}
 
 		svg.Point = function(x, y) {
-			//console.log("here 1");
 			this.x = x;
 			this.y = y;
-			//console.log("Point", )
 		}
 			svg.Point.prototype.angleTo = function(p) {
-				//console.log("here 2");
 				return Math.atan2(p.y - this.y, p.x - this.x);
 			}
 
@@ -744,7 +780,6 @@ function renderFromCommands(cmd, ctx){
 			// base render children
 			this.renderChildren = function(ctx) {
 				for (var i=0; i<this.children.length; i++) {
-					//console.log("renderChildren", this.children[i].render(ctx));
 					this.children[i].render(ctx);
 				}
 			}
@@ -2578,7 +2613,6 @@ function renderFromCommands(cmd, ctx){
 		}
 
 		svg.loadXmlDoc = function(ctx, dom) {
-			//console.log("here");
 			svg.init(ctx);
 
 			var mapXY = function(p) {
