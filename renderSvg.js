@@ -71,33 +71,34 @@ function proxyCtx(ctx) {
 	function renderFromCommands(cmd, ctx){
 	for(var i = 0; i < cmd.length; i++)
 	{
-		let funcName = cmd[i].function;
+		let funcName = myCmd.function;
+		let myCmd = myCmd;
 		if(funcName === "lineTo") {
-			ctx.lineTo(cmd[i].value[0], cmd[i].value[1]);
+			ctx.lineTo(myCmd.value[0], myCmd.value[1]);
 		}
 		else if(funcName === "bezierCurveTo") {
-			ctx.bezierCurveTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3], cmd[i].value[4], cmd[i].value[5]);
+			ctx.bezierCurveTo(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3], myCmd.value[4], myCmd.value[5]);
 		} 
 		else if(funcName === "quadraticCurveTo") {
-			ctx.quadraticCurveTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3]);
+			ctx.quadraticCurveTo(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3]);
 		} 
 		else if(funcName === "arc") {
-			ctx.quadraticCurveTo(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3], cmd[i].value[4], cmd[i].value[5]);
+			ctx.quadraticCurveTo(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3], myCmd.value[4], myCmd.value[5]);
 		} 
 		else if(funcName === "clearRect") {
-			ctx.clearRect(cmd[i].value[0], cmd[i].value[1], cmd[i].value[2], cmd[i].value[3]);
+			ctx.clearRect(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3]);
 		}
 		else if(funcName === "save") {
 			ctx.save();
 		}
 		else if(funcName === "translate") {
-			ctx.translate(cmd[i].value[0], cmd[i].value[1]);
+			ctx.translate(myCmd.value[0], myCmd.value[1]);
 		}
 		else if(funcName === "beginPath") {
 			ctx.beginPath();
 		}
 		else if(funcName === "moveTo") {
-			ctx.moveTo(cmd[i].value[0], cmd[i].value[1]);
+			ctx.moveTo(myCmd.value[0], myCmd.value[1]);
 		}
 		else if(funcName === "closePath") {
 			ctx.closePath();
@@ -112,7 +113,8 @@ function proxyCtx(ctx) {
 			ctx.restore();
 		}
 		else if (funcName === "strokeStyle" ) {
-			ctx.strokeStyle =='none' ? 'rgba(0,0,0)' : cmd[i].value[0];;
+			// ctx.strokeStyle =='none' ? 'rgba(0,0,0)' : myCmd.value[0];
+			ctx.strokeStyle = myCmd.value[0];
 		}
 		else if (funcName === "lineCap" ) {
 			ctx.lineCap = 'butt';
@@ -127,12 +129,15 @@ function proxyCtx(ctx) {
 			ctx.font = "10px sans-serif";
 		}
 		else if (funcName === "fillStyle" ) {
-			ctx.fillStyle == 'none' ? 'rgba(255,255,255)' : cmd[i].value[0];
+			console.log("fillStyle", myCmd, myCmd.value[0]);
+			//ctx.fillStyle == 'none' ? 'rgba(255,255,255)' : myCmd.value[0];
+			ctx.fillStyle = myCmd.value;
 		}
 		else if (funcName === "lineWidth" ) {
 			ctx.lineWidth = 1;
 		}
 		else {
+			debugger;
 			console.error("big problem, command not implemeted:", funcName);
 		}
 
