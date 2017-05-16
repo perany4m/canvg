@@ -71,8 +71,8 @@ function proxyCtx(ctx) {
 	function renderFromCommands(cmd, ctx){
 	for(var i = 0; i < cmd.length; i++)
 	{
-		let funcName = myCmd.function;
-		let myCmd = myCmd;
+		let funcName = cmd[i].function;
+		let myCmd = cmd[i];
 		if(funcName === "lineTo") {
 			ctx.lineTo(myCmd.value[0], myCmd.value[1]);
 		}
