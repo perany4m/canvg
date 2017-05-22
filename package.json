@@ -29,7 +29,6 @@
 		"url": "https://github.com/syntheticore/node-canvg.git"
 	},
 	"dependencies": {
-		"xmldom": "0.1.x",
 		"rgbcolor": "0.0.x",
 		"stackblur": "0.0.x"
 	},
