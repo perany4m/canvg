@@ -1916,11 +1916,17 @@ var stackblur = require("stackblur");
 var proxy = null;
 var orgCtx = null;
 var commands = [];
+let mouseTrans = [];
 
 function fix(arr){
 		let gCommands = JSON.stringify(commands);
 		document.getElementById(arr).value = gCommands;
 	};
+
+let currentTranslate = {
+	tx:0,
+	ty:0	
+};
 
 var handler = {
     get: function(target, name) {
@@ -1933,8 +1939,18 @@ var handler = {
 			 	let result = origMethod.apply(orgCtx, args);
                 	console.log(name + JSON.stringify(args) + ' -> ' + JSON.stringify(result));
 					//commands.push({action: "get", function: name, value: args});
-					//let tempArg = fix(args);
-					commands.push({function: name, value: args});
+					//let tempArg = fix(args);				
+					if (name == "translate") {
+						var transP = {
+							tx:(args[0]) + (currentTranslate.tx),	
+							ty:(args[1]) + (currentTranslate.ty)
+						}
+						currentTranslate = transP;							
+						commands.push({function: name, value: args, tx:currentTranslate.tx, ty:currentTranslate.ty});			
+					} 
+					else {
+						commands.push({function: name, value: args, tx:currentTranslate.tx, ty:currentTranslate.ty});
+					}
 
                 return result;	
 			}
@@ -1946,6 +1962,8 @@ var handler = {
 	set: function(obj, name, newval) {
 		//commands.push({action: "set", attribute: name, value: newval});
 		console.log("set proxy",JSON.stringify(name) + ' -> ' + JSON.stringify(newval));
+
+
 		commands.push({function: name, value: newval});
 		orgCtx[name] = newval;
 	}
@@ -1980,27 +1998,43 @@ function proxyCtx(ctx) {
 	//		 renderCallback: function => will call the function after the first render is completed
 	//		 forceRedraw: function => will call the function on every frame, if it returns true, will redraw
 
-	function renderFromCommands(cmd, ctx){
+	function renderFromCommands(x, y, cmd, ctx){
 
 		// console.log("about to render commands");
-		// console.log(gCommands);
-
-	for(var i = 0; i < cmd.length; i++)
-	{
+		// console.log(cmd);
 		
+		console.log("X:"+x+"   Y:"+Math.round(y));
+	for(var i = 0; i < cmd.length; i++)
+	{		
+		let tx = 0;
+		let ty = 0;
 		let funcName = cmd[i].function;
 		let myCmd = cmd[i];
+
+		if (myCmd.tx) {
+			tx = myCmd.tx
+			if(x==0){x = tx;}	
+			else{x = x + tx;}		
+		}
+
+		if (myCmd.ty) {
+			ty = myCmd.ty
+			if(y==0){y = ty;}
+			else{y = y + ty;}		
+		}
+
 		if(funcName === "lineTo") {
-			ctx.lineTo(myCmd.value[0], myCmd.value[1]);
+			ctx.lineTo(x+myCmd.value[0], y+myCmd.value[1])		
 		}
 		else if(funcName === "bezierCurveTo") {
-			ctx.bezierCurveTo(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3], myCmd.value[4], myCmd.value[5]);
+			ctx.bezierCurveTo(x+myCmd.value[0], y+myCmd.value[1], x+myCmd.value[2], y+myCmd.value[3], x+myCmd.value[4], y+myCmd.value[5]);			
 		} 
 		else if(funcName === "quadraticCurveTo") {
-			ctx.quadraticCurveTo(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3]);
+			ctx.quadraticCurveTo(x+myCmd.value[0], y+myCmd.value[1], x+myCmd.value[2], y+myCmd.value[3]);
 		} 
-		else if(funcName === "arc") {			
-			ctx.arc(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3], myCmd.value[4], myCmd.value[5]);
+		else if(funcName === "arc") {
+			if(x==0&&y==0){ctx.arc(x+myCmd.value[0], y+myCmd.value[1], myCmd.value[2], myCmd.value[3], myCmd.value[4], myCmd.value[5]);}
+			else{ctx.arc(x, y, myCmd.value[2], myCmd.value[3], myCmd.value[4], myCmd.value[5]);}
 		} 
 		else if(funcName === "clearRect") {
 			ctx.clearRect(myCmd.value[0], myCmd.value[1], myCmd.value[2], myCmd.value[3]);
@@ -2008,14 +2042,15 @@ function proxyCtx(ctx) {
 		else if(funcName === "save") {
 			ctx.save();
 		}
-		else if(funcName === "translate") {
-			ctx.translate(myCmd.value[0], myCmd.value[1]);
+		else if(funcName === "translate") {		
+			//console.log(myCmd)
+			//ctx.translate(myCmd.value[0], myCmd.value[1]);
 		}
 		else if(funcName === "beginPath") {
 			ctx.beginPath();
 		}
 		else if(funcName === "moveTo") {
-			ctx.moveTo(myCmd.value[0], myCmd.value[1]);
+			ctx.moveTo(x+myCmd.value[0], y+myCmd.value[1]);			
 		}
 		else if(funcName === "closePath") {
 			ctx.closePath();
@@ -2056,10 +2091,10 @@ function proxyCtx(ctx) {
 			ctx.measureText(myCmd.value[0]);
 		}
 		else if (funcName === "strokeText" ) {
-			ctx.strokeText(myCmd.value[0], myCmd.value[1], myCmd.value[2]);
+			ctx.strokeText(myCmd.value[0], myCmd.value[1]-x, myCmd.value[2]-y);
 		}
 		else if (funcName === "fillText" ) {
-			ctx.fillText(myCmd.value[0], myCmd.value[1], myCmd.value[2]);
+			ctx.fillText(myCmd.value[0], myCmd.value[1]-x, myCmd.value[2]-y);	
 		}
 		else if (funcName === "rotate" ) {
 
@@ -2075,13 +2110,20 @@ function proxyCtx(ctx) {
 			debugger;
 			console.error("big problem, command not implemeted:", funcName);
 		}
+		x = x - tx;
+		y = y - ty;
 
 	}
-
+	currentTranslate.tx = 0;
+	currentTranslate.ty = 0;
 }
 	
-	this.canvg = function (target, target2, s, cmdLog, opts,) {
+	this.canvg = function (target, target2, s, cmdLog, opts) {
 		commands = [];
+		mouseTrans = [];
+		currentTranslate.tx = 0;
+		currentTranslate.ty = 0;
+
 		if (target == null || s == null) {
 			return;
 		}
@@ -2096,26 +2138,32 @@ function proxyCtx(ctx) {
 		svg.opts = opts;
 		var ctx = target.getContext('2d');
 		ctx = proxyCtx(ctx);
-		//JSON.stringify(name)
-		//var temp = svg.parseXml(s);
-		//new XMLSerializer().serializeToString(xml);
 		svg.loadXmlDoc(ctx, svg.parseXml(s));
 		
 
 // nu finns det commands -------------------------
-		target2.svg = svg = build();
 		var ctx2 = target2.getContext('2d');
-		renderFromCommands(commands, ctx2,);
+		renderFromCommands(0,0,commands, ctx2,);
 		if(cmdLog != null){
 			fix(cmdLog);
 		}
+	}
+	
+	this.mouseTransform = function (mouseCoordinates, tCanvas, xPos, yPos) {
+		tCanvas = tCanvas.getContext("2d");	
+		renderFromCommands(mouseCoordinates.x-xPos, mouseCoordinates.y-yPos, commands, tCanvas);
+	}
+
+	this.mouseLeave = function (tCanvas) {
+		tCanvas = tCanvas.getContext("2d");
+		renderFromCommands(0, 0, commands, tCanvas);
 	}
 
 
 	function build() {
 		var svg = {};
 
-		svg.FRAMERATE = 30;
+		svg.FRAMERATE = 60;
 		svg.MAX_VIRTUAL_PIXELS = 30000;
 
 		// globals
@@ -4591,7 +4639,7 @@ function proxyCtx(ctx) {
 
 				// clear and render
 				if (svg.opts['ignoreClear'] != true) {
-					ctx.clearRect(0, 0, cWidth, cHeight);
+					ctx.clearRect(0, 0, cWidth+200, cHeight+100);
 				}
 
 				e.render(ctx);
