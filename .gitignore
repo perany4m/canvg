@@ -1,0 +1,5 @@
+
+/node_modules/*
+
+!/node_modules/canvg/index*.js
+!/node_modules/theCss.css
