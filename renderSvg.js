@@ -2627,7 +2627,8 @@ function proxyCtx(ctx) {
 					break;
 
 				case "transform":
-					ctx.transform(canvasCmd.hScaling, canvasCmd.hSkewing, canvasCmd.vSkewing, canvasCmd.vScaling, ~~(x + canvasCmd.hMoving), ~~(y + canvasCmd.vMoving));
+					// ctx.transform(canvasCmd.hScaling, canvasCmd.hSkewing, canvasCmd.vSkewing, canvasCmd.vScaling, ~~(x + canvasCmd.hMoving), ~~(y + canvasCmd.vMoving));
+					ctx.transform(canvasCmd.hScaling, canvasCmd.hSkewing, canvasCmd.vSkewing, canvasCmd.vScaling, canvasCmd.hMoving, canvasCmd.vMoving);
 
 					break;
 
