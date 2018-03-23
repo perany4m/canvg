@@ -1,42 +1,49 @@
 {
-	"name": "canvg-client",
-	"description": "A port of canvg for use with Browserify",
-	"version": "0.0.1",
+  "name": "canvg-client",
+  "description": "A port of canvg for use with Browserify",
+  "version": "0.0.1",
   "author": "Björn Breitgoff <syntheticore@gmail.com>",
-	"contributors": [{
-		"name": "Sebastian Vollnhals",
-		"email": "sebastian@vollnhals.info",
-		"url": "https://github.com/yetzt"
-	},{
-		"name": "Chetan",
-		"email": "chetandhemrbe@gmail.com",
-		"url": "https://github.com/chetandhembre"
-	},{
-		"name": "Jesús Leganés Combarro",
-		"email": "piranna@gmail.com",
-		"url": "https://github.com/piranna"
-	},{
-		"name": "Aaron O'Mullan",
-		"email": "aaron.omullan@gmail.com",
-		"url": "https://github.com/AaronO"
-	},{
-		"name": "Remko Tronçon",
-		"url": "https://github.com/remko"
-	}],
-	"main": "./index.js",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/syntheticore/node-canvg.git"
-	},
-	"dependencies": {
-		"rgbcolor": "0.0.x",
-		"stackblur": "0.0.x"
-	},
-	"keywords": [
-		"svg"
-	],
-	"license": "MIT",
-	"engines": {
-		"node": ">= 0.8.15"
-	}
+  "contributors": [
+    {
+      "name": "Sebastian Vollnhals",
+      "email": "sebastian@vollnhals.info",
+      "url": "https://github.com/yetzt"
+    },
+    {
+      "name": "Chetan",
+      "email": "chetandhemrbe@gmail.com",
+      "url": "https://github.com/chetandhembre"
+    },
+    {
+      "name": "Jesús Leganés Combarro",
+      "email": "piranna@gmail.com",
+      "url": "https://github.com/piranna"
+    },
+    {
+      "name": "Aaron O'Mullan",
+      "email": "aaron.omullan@gmail.com",
+      "url": "https://github.com/AaronO"
+    },
+    {
+      "name": "Remko Tronçon",
+      "url": "https://github.com/remko"
+    }
+  ],
+  "main": "./index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syntheticore/node-canvg.git"
+  },
+  "dependencies": {
+    "rgbcolor": "0.0.x",
+    "stackblur": "0.0.x",
+    "svgjs": "^2.6.2"
+  },
+  "keywords": [
+    "svg"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">= 0.8.15"
+  }
 }
