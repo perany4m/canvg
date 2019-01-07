@@ -1442,6 +1442,57 @@ let ctx;
 				if (node.attributes['transform']) {
 					setTransform(node.attributes['transform'].nodeValue, context);
 				}
+				else if (node.tagName && node.tagName.toLowerCase() === "svg") {
+					if (node.attributes["viewBox"]) {
+						var vbString = node.attributes["viewBox"].nodeValue,
+							vbWidth, vbHeight;
+
+						if (vbString) {
+							var paramStrings = vbString.split(' '),
+								numberArr = [];
+
+							for (var i = 0; i < paramStrings.length; i++) {
+								var number = parseInt(paramStrings[i]);
+
+								if (isNaN(number)) {
+									number = 0;
+								}
+
+								numberArr.push(number);
+							}
+
+							if (numberArr.length === 4) {
+								vbWidth = numberArr[2];
+								vbHeight = numberArr[3];
+							}
+						}
+
+						if (vbWidth && vbHeight) {
+							var scaleX = 1,
+								scaleY = 1;
+
+							if (node.attributes["width"]) {
+								var width = parseInt(node.attributes["width"].nodeValue);
+
+								if (!isNaN(width)) {
+									scaleX = width / vbWidth;
+								}
+							}
+
+							if (node.attributes["height"]) {
+								var height = parseInt(node.attributes["height"].nodeValue);
+
+								if (!isNaN(height)) {
+									scaleY = height / vbHeight;
+								}
+							}
+
+							if (scaleX !== 1 || scaleY !== 1) {
+								context.scale(scaleX, scaleY);
+							}
+						}
+					}
+				}
 			}
 		}
 
