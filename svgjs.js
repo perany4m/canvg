@@ -453,6 +453,52 @@ let miniDrawCmdTypeMap = {
 
 			return miniCmd;
 		}
+	},
+	fillText: function (args) {
+		if (args.length === 3) {
+			let miniCmd = {
+				_t: 'filltext',
+				text: roundFunc(args[0]),
+				x: roundFunc(args[1]),
+				y: roundFunc(args[2])
+			};
+
+			return miniCmd;
+		}
+		else if (args.length === 4) {
+			let miniCmd = {
+				_t: 'filltext',
+				text: roundFunc(args[0]),
+				x: roundFunc(args[1]),
+				y: roundFunc(args[2]),
+				maxWidth: roundFunc(args[3])
+			};
+
+			return miniCmd;
+		}
+	},
+	strokeText: function (args) {
+		if (args.length === 3) {
+			let miniCmd = {
+				_t: 'stroketext',
+				text: roundFunc(args[0]),
+				x: roundFunc(args[1]),
+				y: roundFunc(args[2])
+			};
+
+			return miniCmd;
+		}
+		else if (args.length === 4) {
+			let miniCmd = {
+				_t: 'stroketext',
+				text: roundFunc(args[0]),
+				x: roundFunc(args[1]),
+				y: roundFunc(args[2]),
+				maxWidth: roundFunc(args[3])
+			};
+
+			return miniCmd;
+		}
 	}
 };
 
@@ -746,6 +792,24 @@ let ctx;
 				case "clearrect":
 					ctx.clearRect(~~(canvasCmd.x), ~~(canvasCmd.y), ~~(canvasCmd.width), ~~(canvasCmd.height));
 
+					break;
+
+				case "fillText":
+					if (canvasCmd.maxWidth) {
+						ctx.fillText(canvasCmd.text, canvasCmd.x, canvasCmd.y, canvasCmd.maxWidth);
+					}
+					else {
+						ctx.fillText(canvasCmd.text, canvasCmd.x, canvasCmd.y);
+					}
+					break;
+
+				case "strokeText":
+					if (canvasCmd.maxWidth) {
+						ctx.strokeText(canvasCmd.text, canvasCmd.x, canvasCmd.y, canvasCmd.maxWidth);
+					}
+					else {
+						ctx.strokeText(canvasCmd.text, canvasCmd.x, canvasCmd.y);
+					}
 					break;
 
 				case "property":
@@ -1445,7 +1509,7 @@ let ctx;
 				else if (node.tagName && node.tagName.toLowerCase() === "svg") {
 					if (node.attributes["viewBox"]) {
 						var vbString = node.attributes["viewBox"].nodeValue,
-							vbWidth, vbHeight;
+							vbX, vbY, vbWidth, vbHeight;
 
 						if (vbString) {
 							var paramStrings = vbString.split(' '),
@@ -1462,6 +1526,8 @@ let ctx;
 							}
 
 							if (numberArr.length === 4) {
+								vbX = -numberArr[0],
+								vbY = -numberArr[1],
 								vbWidth = numberArr[2];
 								vbHeight = numberArr[3];
 							}
@@ -1490,6 +1556,10 @@ let ctx;
 							if (scaleX !== 1 || scaleY !== 1) {
 								context.scale(scaleX, scaleY);
 							}
+						}
+
+						if (vbX && vbY) {
+							context.translate(vbX, vbY);
 						}
 					}
 				}
