@@ -6097,7 +6097,8 @@ function proxyCtx(ctx) {
 	return proxy;
 }
 
-let ctx;
+let ctx,
+	_classes = {};
 
 (function () {
 	this.svgjs = function (target, target2, s, cmdLog, opts) {
@@ -6123,6 +6124,8 @@ let ctx;
 
 		this._wrapperDiv = document.createElement("div");
 
+		_classes = {};
+		
 		this._drawSvg = SVG(this._wrapperDiv);
 
 		this._drawSvg.svg(this._cleanSvg(s));
@@ -6433,7 +6436,8 @@ let ctx;
 
 				shouldRestore = false;
 
-				const fillStrokeSet = setAttributes(this.node, context),
+				const styleData = getStyleData(this.type, this.node),
+					fillStrokeSet = setAttributes(this.node, context, styleData),
 					newCanvasOptions = Object.assign({}, canvasOptions);
 
 				if (typeof fillStrokeSet.fill === 'boolean') {
@@ -6488,6 +6492,128 @@ let ctx;
 				}
 			});
 
+		}
+	}
+
+	function getStyleItemData(styleStr) {
+		if (styleStr && styleStr.length !== 0) {
+			var key,
+				values = {},
+				numOfBrackets = 0,
+				tmpStr = '',
+				keyStr;
+
+			for (var i = 0; i < styleStr.length; i++) {
+				var chr = styleStr[i];
+
+				if (chr === '{') {
+					numOfBrackets++;
+
+					if (numOfBrackets === 1) {
+						key = tmpStr;
+
+						tmpStr = '';
+						keyStr = null;
+					}
+				}
+				else if (chr === '}') {
+					numOfBrackets--;
+
+					if (numOfBrackets === 0 && keyStr) {
+						values[keyStr] = tmpStr;
+
+						keyStr = null;
+						tmpStr = '';
+					}
+				}
+				else if (chr === ':') {
+					if (!keyStr) {
+						keyStr = tmpStr;
+						tmpStr = '';						
+					}
+				}
+				else if (chr === ';') {
+					if (keyStr) {
+						values[keyStr] = tmpStr;
+
+						keyStr = null;
+						tmpStr = '';
+					}
+				}
+				else {
+					tmpStr += chr;
+				}
+			}
+
+			return {
+				key, 
+				values
+			};
+		}
+	}
+
+	function getStyleData(type, node) {
+		// console.log('getStyleData()', node, type);
+
+		if (node && type === 'style') {
+			var innerText = node.innerHTML,
+				styleRegex = new RegExp(/\.[\w\d]+?\{.+?\}/im),
+				matches = styleRegex.exec(innerText),
+				elements = {},
+				classes = {};
+
+			if (matches && matches.length) {
+				for (var i = 0; i < matches.length; i++) {
+					var match = matches[i],
+						data = getStyleItemData(match);
+
+					if (data) {
+						if (data.key.startsWith('.')) {
+							var className = data.key.substring(1),
+								values = classes[className];
+
+							if (values) {
+								for (var valueKey in data.values) {
+									if (data.values.hasOwnProperty(valueKey)) {
+										values[valueKey] = data.values[valueKey];
+									}
+								}
+							}
+							else {
+								values = data.values;
+							}
+
+							classes[className] = values;
+						}
+						else if (data.key.startsWith("#")) {
+							console.log('getStyleData() no support for id-based css values!', node);
+						}
+						else {
+							var values = elements[data.key];
+
+							if (values) {
+								for (var valueKey in data.values) {
+									if (data.values.hasOwnProperty(valueKey)) {
+										values[valueKey] = data.values[valueKey];
+									}
+								}
+							}
+							else {
+								values = data.values;
+							}
+
+							elements[data.key] = values;
+						}
+					}
+				}
+			}
+
+			console.log('getStyleData() result', innerText, matches, node, elements, classes);
+			
+			return {
+				elements,
+				classes
+			};
 		}
 	}
 
@@ -6849,7 +6975,7 @@ let ctx;
 		}
 	}
 
-	function setAttributes(node, context) {
+	function setAttributes(node, context, styleData) {
 		let fillStrokeSet = {
 			fill: null,
 			stroke: null,
@@ -6858,7 +6984,51 @@ let ctx;
 			strokeOpacity: 1
 		};
 
+		if (styleData) {
+			if (styleData.classes) {
+				for (let className in styleData.classes) {
+					if (styleData.classes.hasOwnProperty(className)) {
+						var classItem = styleData.classes[className],
+							existingClassItem = _classes[className];
+
+						if (existingClassItem) {
+							for (let key in classItem) {
+								if (classItem.hasOwnProperty(key)) {
+									existingClassItem[key] = classItem[key];
+								}
+							}
+
+							_classes[className] = existingClassItem;
+						}
+						else {
+							_classes[className] = classItem;
+						}
+					}
+				}
+			}
+		}
+
 		if (node) {
+			let classList = node.classList;
+
+			if (classList && classList.length) {
+				for (let i = 0; i < classList.length; i++) {
+					let item = classList[i],
+						styleClass = _classes[item];
+
+					if (styleClass) {
+						for (let key in styleClass) {
+							if (styleClass.hasOwnProperty(key)) {
+								if (!node.attributes[key]) {
+									console.log('set attr', key, styleClass[key]);
+									node.setAttribute(key, styleClass[key]);
+								}
+							}
+						}
+					}
+				}
+			}
+
 			if (node.attributes) {
 				let fillStyle,
 					fillRule,
@@ -7351,6 +7521,16 @@ let ctx;
 					this.remove()
 				else
 					path.original = this
+			}
+
+			var classList = this.node.classList;
+
+			if (classList.length) {
+				for (var i = 0; i < classList.length; i++) {
+					var item = classList[i];
+
+					path.node.classList.add(item);
+				}
 			}
 
 			return path
