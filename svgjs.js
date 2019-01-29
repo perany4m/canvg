@@ -1469,7 +1469,6 @@ let ctx,
 						for (let key in styleClass) {
 							if (styleClass.hasOwnProperty(key)) {
 								if (!node.attributes[key]) {
-									console.log('set attr', key, styleClass[key]);
 									node.setAttribute(key, styleClass[key]);
 								}
 							}
